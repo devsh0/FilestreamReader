@@ -269,6 +269,53 @@ public:
         test_reading_aligned_little_endian_qwords();
     }
 
+    void test_error_flag_is_set_if_file_does_not_exist()
+    {
+        register_new("error_flag_is_set_if_file_does_not_exist");
+        FilestreamReader reader("non-existent.file");
+        expect(reader.handle_error() == true);
+        expect(!reader);
+        report_passed();
+    }
+
+    void test_remaining_bits_in_buffer()
+    {
+#define bytes 8
+        register_new("remaining_bits_in_buffer");
+        FilestreamReader reader(s_path_8b_dat);
+        expect(reader.remaining_bits_in_buffer() == 8 * bytes);
+        reader.read_bits(7 * bytes);
+        expect(reader.remaining_bits_in_buffer() == 1 * bytes);
+        reader.read_byte();
+        expect(reader.remaining_bits_in_buffer() == 0 * bytes);
+        report_passed();
+#undef bytes
+    }
+
+    void test_peaking_beyond_the_edge_of_buffer()
+    {
+        register_new("peaking_beyond_the_edge_of_buffer");
+        FilestreamReader reader(s_path_8b_dat, 1);
+        reader.read_bits(7);
+        expect(reader.peak_word() == 0b1000100001010101);
+        expect(reader.read_word() == 0b1000100001010101);
+        report_passed();
+    }
+
+    void test_peaking_beyond_the_end_of_file()
+    {
+        register_new("peaking_beyond_the_end_of_file");
+        FilestreamReader reader(s_path_8b_dat, 2);
+        reader.read_word();
+        reader.peak_bits(64);
+        expect(reader.handle_error() == true);
+        u8 bytes[] = {0xab, 0x30, 0x63, 0x58, 0xd7, 0x45};
+        for (u8 byte : bytes)
+            expect(reader.read_byte() == byte);
+        expect(reader.handle_error() == false);
+        report_passed();
+    }
+
     void test_unaligned_reads()
     {
         test_reading_unaligned_big_endian_bytes();
@@ -284,14 +331,23 @@ public:
         test_reading_unaligned_little_endian_qwords();
     }
 
+    void test_peaking()
+    {
+        test_peaking_beyond_the_edge_of_buffer();
+        test_peaking_beyond_the_end_of_file();
+    }
+
     void run_all()
     {
         test_aligned_reads();
         test_unaligned_reads();
+        test_peaking();
         test_error_flag_is_set_when_reading_past_the_file();
         test_end_of_buffer_flag_is_set_when_buffer_is_exhausted();
         test_end_of_byte_flag_is_set_when_byte_is_fully_consumed();
         test_end_of_file_flag_is_set_when_file_is_fully_read();
+        test_error_flag_is_set_if_file_does_not_exist();
+        test_remaining_bits_in_buffer();
     }
 };
 }
