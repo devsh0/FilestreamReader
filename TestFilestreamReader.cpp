@@ -40,7 +40,10 @@ public:
     if (!(condition)) {   \
         report_failed();  \
         return;           \
-    }
+    }                     \
+                          \
+    do {                  \
+    } while (false)
 
     void test_reading_aligned_bytes()
     {
@@ -151,7 +154,7 @@ public:
         register_new("reading_unaligned_big_endian_words");
         FilestreamReader reader(s_path_8b_dat, ByteOrder::BigEndian);
         reader.read_bits(7);
-        expect(reader.read_word() == 0b1000100001010101)
+        expect(reader.read_word() == 0b1000100001010101);
         report_passed();
     }
 
@@ -160,7 +163,7 @@ public:
         register_new("reading_unaligned_little_endian_words");
         FilestreamReader reader(s_path_8b_dat, ByteOrder::LittleEndian);
         reader.read_bits(7);
-        expect(reader.read_word() == 0b1010101000100001)
+        expect(reader.read_word() == 0b1010101000100001);
         report_passed();
     }
 
@@ -269,12 +272,20 @@ public:
         test_reading_aligned_little_endian_qwords();
     }
 
+    void test_bool_operator()
+    {
+        register_new("bool_operator");
+        FilestreamReader reader(s_path_8b_dat);
+        expect((!reader) == false);
+        report_passed();
+    }
+
     void test_error_flag_is_set_if_file_does_not_exist()
     {
         register_new("error_flag_is_set_if_file_does_not_exist");
         FilestreamReader reader("non-existent.file");
-        expect(reader.handle_error() == true);
         expect(!reader);
+        expect(reader.handle_error() == true);
         report_passed();
     }
 
@@ -290,6 +301,20 @@ public:
         expect(reader.remaining_bits_in_buffer() == 0 * bytes);
         report_passed();
 #undef bytes
+    }
+
+    void test_forward_byte_alignment()
+    {
+        register_new("forward_byte_alignment");
+        FilestreamReader reader(s_path_8b_dat);
+        reader.read_bits(3);
+        reader.byte_align_forward();
+        expect(reader.read_byte() == 0x10);
+        reader.read_dword();
+        reader.read_bits(6);
+        reader.byte_align_forward();
+        expect(reader.read_byte() == 0x45);
+        report_passed();
     }
 
     void test_peaking_beyond_the_edge_of_buffer()
@@ -309,7 +334,7 @@ public:
         reader.read_word();
         reader.peak_bits(64);
         expect(reader.handle_error() == true);
-        u8 bytes[] = {0xab, 0x30, 0x63, 0x58, 0xd7, 0x45};
+        u8 bytes[] = { 0xab, 0x30, 0x63, 0x58, 0xd7, 0x45 };
         for (u8 byte : bytes)
             expect(reader.read_byte() == byte);
         expect(reader.handle_error() == false);
@@ -348,6 +373,8 @@ public:
         test_end_of_file_flag_is_set_when_file_is_fully_read();
         test_error_flag_is_set_if_file_does_not_exist();
         test_remaining_bits_in_buffer();
+        test_forward_byte_alignment();
+        test_bool_operator();
     }
 };
 }

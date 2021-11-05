@@ -68,6 +68,11 @@ public:
 
     explicit operator bool() const
     {
+        return !m_error;
+    }
+
+    bool operator!() const
+    {
         return m_error;
     }
 
@@ -124,6 +129,9 @@ public:
     // Reads 64 bits without mutating the state of the stream.
     u64 peak_qword(const ByteOrder order) { return (u64)peak_bits(64, order); }
     u64 peak_qword() { return peak_qword(m_default_order); }
+
+    // Only modifies the bit cursor. New byte is not loaded until the next `read_*` call.
+    void byte_align_forward() { m_bit_cursor = 8; }
 };
 
 }
