@@ -2,5 +2,5 @@
 
 cmake . -B ./build
 cd build && make
-mkdir lib
+rm -rf lib && mkdir lib
 mv *.a lib && cp ../*.h lib
